@@ -1,16 +1,34 @@
-# This is a sample Python script.
+from gcp.gcs import GCSClient
+from config.settings import settings
+from loader.asteroids_loader import AsteroidsLoader
+import pandas as pd
+import io
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+def main(request):
+        request_json = request.get_json(silent=True)
+        file_path = request_json.get("file_path")
 
+        if not file_path:
+            return {"error": "file_path is required"}, 400
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+        try:
+            gcs = GCSClient()
+            csv_content = gcs.download_csv_as_text(file_path)
 
+            if not csv_content:
+                return {"error": f"CSV file at {file_path} is empty or missing"}, 400
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+            csv_buffer = io.StringIO(csv_content)
+            df = pd.read_csv(csv_buffer, dtype=str)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+            loader = AsteroidsLoader()
+            loader.load_data_in_bigquery(df, settings.PROJECT_ID, settings.DATASET_ID, settings.TABLE_ID)
+
+            return {
+                "message": "Load complete",
+                "rows_loaded": len(df),
+                "file_path": file_path
+            }
+
+        except Exception as e:
+            return {"error": str(e)}, 500
