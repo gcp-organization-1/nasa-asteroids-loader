@@ -1,6 +1,7 @@
 from gcp.gcs import GCSClient
 from config.settings import settings
 from loader.asteroids_loader import AsteroidsLoader
+from config.logger import logger
 import pandas as pd
 import io
 
@@ -22,7 +23,9 @@ def main(request):
             df = pd.read_csv(csv_buffer, dtype=str)
 
             loader = AsteroidsLoader()
+            logger.info("Start loading data to bigquery")
             loader.load_data_in_bigquery(df, settings.PROJECT_ID, settings.DATASET_ID, settings.TABLE_ID)
+            logger.info("Loaded successfully")
 
             return {
                 "message": "Load complete",

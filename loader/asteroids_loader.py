@@ -1,5 +1,6 @@
 from google.cloud import bigquery
 from config.settings import settings
+from config.logger import logger
 
 class AsteroidsLoader:
     def __init__(self):
@@ -11,4 +12,4 @@ class AsteroidsLoader:
         job = self.client.load_table_from_dataframe(df, table)
         job.result()
 
-        print("Loaded", job.output_rows, "rows.")
+        logger.info("Loaded", job.output_rows, "rows.")
